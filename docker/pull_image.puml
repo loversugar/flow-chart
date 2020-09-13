@@ -1,0 +1,27 @@
+@startuml pull image
+scale 2
+
+title: the process of pulling image
+docker_client -> image: /images/create
+image -> image_routes: postImagesCreate(context, responseWriter, \n request, vars) 
+image_routes -> image_pull: PullImage(context, image, tag, \n platform, metaHeaders, authConfig, outStream)
+image_pull -> image_pull: pullImageWithReference(context, ref, platform \n metaHeaders, authConfig, outStream)
+image_pull -> pull: Pull(context, reference.Named, imagePullConfig)
+pull -> pull_v2: Pull(context, referene.Named, platform)
+pull_v2 -> pull_v2: pullV2Repository(context, reference.Named, platform)
+pull_v2 -> pull_v2: pullV2Tag(context, reference.Named, platform)
+pull_v2 -> pull_v2: pullSchema1(context, reference.Named, schema1.SignedManifest, \n platform)
+pull_v2 -> download: Download(context, image.RootFS, os, layers, progressOutput)
+download -> download: makeDownloadFunc(descriptor, parentLayer, parentDownload, os)
+download -> pull_v2: Download(context, progressOutput)
+pull_v2 -> download: return NewReadCloserWrapper
+pull_v2 -> archive: DecompressStream(archive io.Reader)
+archive -> pull_v2: return io.ReadCloser
+pull_v2 -> layer_store: Register(io.Reader, parent ChainID)
+layer_store -> layer_store: registerWithDescriptor(io.Reader, parent, descriptor)
+layer_store -> layer_store: applyTar(fileMetadtaTransaction, io.Reader, parent string, layer)
+layer_store -> overlay: ApplyDiff(id, parent, diff io.Reader)
+overlay -> layer_store: return
+
+
+@enduml
